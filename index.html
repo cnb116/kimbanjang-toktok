@@ -157,7 +157,7 @@
                     </div>
                     <div class="stat-info">
                         <span class="stat-label">누적 검수 데이터</span>
-                        <span class="stat-val" id="totalRecordsText">0건</span>
+                        <span class="stat-val" id="totalRecordsText">0건 (로컬: 0, 서버: 0)</span>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -171,17 +171,72 @@
                 </div>
             </div>
 
+            <!-- 서버 AI 모델 학습 현황 카드 -->
+            <div class="info-card">
+                <h3 style="display: flex; align-items: center; gap: 8px;">
+                    <span class="material-icons-round" style="color: var(--safety-yellow);">psychology</span> 🤖 AI 검수 모델 학습 현황
+                </h3>
+                <p style="margin-bottom: 15px;">서버에 축적된 자재 비디오 데이터를 사용하여 AI 분류 모델을 재훈련시킵니다. 데이터가 많을수록 탐지 정확도가 향상됩니다.</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); padding: 12px; border-radius: 8px;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">모델 버전</span>
+                        <span id="modelVersionText" style="font-size: 1.3rem; font-weight: 800; color: white;">v1.0.0</span>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); padding: 12px; border-radius: 8px;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">자재 분류 정확도</span>
+                        <span id="modelAccuracyText" style="font-size: 1.3rem; font-weight: 800; color: var(--success-green);">72.5%</span>
+                    </div>
+                </div>
+
+                <!-- Training progress bar (hidden by default) -->
+                <div id="trainingProgressContainer" class="hidden" style="margin-bottom: 15px; background: rgba(0,0,0,0.4); border: 1.5px solid var(--card-border); padding: 12px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;">
+                        <span id="trainingStatusLabel" style="color: var(--safety-yellow); font-weight: 700;">🔄 AI 모델 학습 진행 중...</span>
+                        <span id="trainingLossLabel" style="color: var(--text-muted); font-weight: 700;">Loss: --</span>
+                    </div>
+                    <div class="progress-bar-container" style="width: 100%; height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden;">
+                        <div id="trainingProgressBar" class="progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--safety-yellow), var(--success-green));"></div>
+                    </div>
+                </div>
+
+                <button id="btnStartTraining" class="btn-yellow-huge" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span class="material-icons-round">model_training</span> 🤖 AI 모델 재학습 시작
+                </button>
+            </div>
+
+            <!-- 자동 및 수동 동기화 제어 카드 -->
+            <div class="sync-toggle-card">
+                <div class="sync-toggle-info">
+                    <span class="sync-toggle-title">📡 실시간 자동 동기화 (Auto-Sync)</span>
+                    <span class="sync-toggle-desc">네트워크 연결 시 촬영 데이터를 AI 학습 서버에 즉시 전송합니다.</span>
+                </div>
+                <label class="switch-large">
+                    <input type="checkbox" id="chkAutoSync" checked>
+                    <span class="slider-large"></span>
+                </label>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <button id="btnManualSync" class="btn-green-huge" style="width: 100%; padding: 16px; font-size: 1.15rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span class="material-icons-round">sync</span> 미전송 데이터 일괄 동기화 (수동)
+                </button>
+            </div>
+
             <!-- AI 자산화 안내 카드 -->
             <div class="info-card">
                 <h3>💡 이 데이터가 어떻게 나의 자산이 되나요?</h3>
-                <p>현장에서 촬영한 <strong>비디오</strong>와 내가 설명한 <strong>음성 기록(STT)</strong>은 건설 AI 모델을 훈련시키는 유일한 열쇠입니다. 데이터가 축적될수록 AI의 검수 정밀도는 50%에서 90% 이상으로 점진적으로 발전하게 됩니다.</p>
-                <button id="btnExportZip" class="btn-yellow-huge" style="margin-top: 15px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <p>현장에서 촬영한 <strong>비디오</strong>와 내가 설명한 <strong>음성 기록(STT)</strong>은 건설 AI 모델을 훈련시키는 유일한 열쇠입니다. 데이터가 축적될수록 AI의 검수 정밀도는 점진적으로 발전하게 됩니다.</p>
+                <button id="btnExportZip" class="btn-gray-huge" style="margin-top: 15px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #3f3f46;">
                     <span class="material-icons-round">download_for_offline</span> 📦 전체 데이터셋 다운로드 (.zip)
                 </button>
             </div>
 
             <!-- 검수 데이터 목록 -->
-            <h3 class="subsection-title">📂 수집된 데이터 이력</h3>
+            <h3 class="subsection-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>📂 수집된 데이터 이력</span>
+                <span id="syncSummaryText" style="font-size: 0.85rem; font-weight: normal; color: var(--text-muted);">로컬 0건 | 서버 0건</span>
+            </h3>
             <div id="assetListContainer" class="asset-list">
                 <!-- JS에서 동적으로 목록 렌더링 -->
                 <div class="empty-state">
@@ -203,7 +258,7 @@
                 <video id="modalVideo" controls playsinline style="width: 100%; border-radius: 8px; background: #000; max-height: 300px;"></video>
                 <div class="modal-info">
                     <div class="modal-info-item">
-                        <span class="modal-info-label">🗣️ 음성 기록 (STT)</span>
+                        <span class="modal-info-label">🗣️ 음성 기록 (STT) 및 자재 결과</span>
                         <p id="modalTranscript" class="modal-info-text">음성 기록이 없습니다.</p>
                     </div>
                     <div class="modal-info-item">
