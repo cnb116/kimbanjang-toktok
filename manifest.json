@@ -1,0 +1,16 @@
+{
+  "name": "김반장 톡톡",
+  "short_name": "톡톡",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#FFC800",
+  "description": "건설 현장 정밀 검수용 웹앱",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
