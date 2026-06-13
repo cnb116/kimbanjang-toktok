@@ -260,6 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 카메라 화면 시작 함수
     const initCamera = async () => {
         try {
+            // 1. 비디오와 오디오(마이크) 권한을 동시에 요청
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
                 audio: true
@@ -271,8 +272,22 @@ document.addEventListener('DOMContentLoaded', () => {
             window.addEventListener('resize', resizeCanvas);
             startCanvasAnimation();
         } catch (err) {
-            console.error("Camera/Audio Init Error:", err);
-            alert("⚠️ 카메라 및 마이크 권한 오류\n\n현장 검수를 위해 카메라 및 오디오(음성) 권한을 허용해 주십시오.");
+            console.warn("Camera with Audio Init failed, trying video only...", err.message);
+            try {
+                // 2. 오디오 요청 실패 시, 비디오 전용으로 재시도 (마이크 없는 PC 및 오디오 권한 거부 대응)
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
+                localStream = stream;
+                webcamVideo.srcObject = stream;
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                startCanvasAnimation();
+            } catch (videoErr) {
+                console.error("Camera Init completely failed:", videoErr);
+                alert("⚠️ 카메라 권한 오류\n\n현장 검수를 위해 브라우저의 카메라 권한을 허용해 주십시오.");
+            }
         }
     };
 
@@ -357,7 +372,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            mediaRecorder = new MediaRecorder(localStream, options);
+            try {
+                mediaRecorder = new MediaRecorder(localStream, options);
+            } catch (optErr) {
+                console.warn("MediaRecorder with options failed, falling back to default options...", optErr);
+                mediaRecorder = new MediaRecorder(localStream);
+            }
             mediaRecorder.ondataavailable = (e) => {
                 if (e.data && e.data.size > 0) {
                     recordedChunks.push(e.data);
