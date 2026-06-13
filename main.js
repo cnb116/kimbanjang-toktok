@@ -227,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let recordedChunks = [];
     
     let isRecording = false;
+    let isMockRecording = false;
     let recordStartTime = 0;
     let timerInterval = null;
     let canvasAnimationId = null;
@@ -330,10 +331,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 녹화 시작
     const startRecording = () => {
-        if (!localStream) return;
         recordedChunks = [];
         transcribedText = '';
 
+        if (!localStream) {
+            isMockRecording = true;
+            isRecording = true;
+            recordBtn.className = 'record-btn-recording';
+            recordBtn.classList.add('recording');
+            recIndicator.style.display = 'inline-block';
+            guideText.innerText = '🔴 [시뮬레이션 녹화 중] 목소리로 자재 수량을 설명해 주십시오.';
+            recordingTimer.style.display = 'block';
+            recordStartTime = Date.now();
+            timerInterval = setInterval(updateTimer, 1000);
+            return;
+        }
+
+        isMockRecording = false;
         let options = { mimeType: 'video/webm;codecs=vp9,opus' };
         if (!MediaRecorder.isTypeSupported(options.mimeType)) {
             options = { mimeType: 'video/webm;codecs=vp8,opus' };
@@ -442,9 +456,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 녹화 중지
     const stopRecording = () => {
-        if (!mediaRecorder || !isRecording) return;
-        
-        mediaRecorder.stop();
+        if (!isRecording) return;
+
+        if (isMockRecording) {
+            isRecording = false;
+            clearInterval(timerInterval);
+            timerInterval = null;
+
+            recordBtn.className = 'record-btn-idle';
+            recIndicator.style.display = 'none';
+            guideText.innerText = '🎤 비디오 촬영을 시작하고, 목소리로 자재 수량을 설명해 주십시오.';
+            recordingTimer.style.display = 'none';
+
+            // Simulate result loading with dummy data
+            const mockSTTList = [
+                "파이프 열두 개 검수 완료",
+                "철근 여덟 개 정상",
+                "시멘트 다섯 포대 입고",
+                "벽체 균열 크랙 진단 바람"
+            ];
+            const randomSTT = mockSTTList[Math.floor(Math.random() * mockSTTList.length)];
+            
+            // 1-pixel tiny mock video blob to avoid crash during save
+            const mockBlob = new Blob(["dummy webm data"], { type: 'video/webm' });
+            recordedChunks = [mockBlob];
+            
+            resultVideo.src = "";
+            voiceResultText.innerText = `"${randomSTT}" (시뮬레이션 음성)`;
+
+            cameraState.classList.add('hidden');
+            resultState.classList.remove('hidden');
+            
+            const aiLoadingOverlay = document.getElementById('aiLoadingOverlay');
+            const resultContent = document.getElementById('resultContent');
+            const aiProgressBar = document.getElementById('aiProgressBar');
+            const aiLoadingStatus = document.getElementById('aiLoadingStatus');
+            
+            aiLoadingOverlay.classList.remove('hidden');
+            resultContent.classList.add('hidden');
+            aiProgressBar.style.width = '0%';
+            aiLoadingStatus.innerText = '동영상 프레임 디코딩 중...';
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                aiProgressBar.style.width = `${progress}%`;
+                
+                if (progress === 30) {
+                    aiLoadingStatus.innerText = '자재 형태 분석 및 윤곽 탐지 중...';
+                } else if (progress === 60) {
+                    aiLoadingStatus.innerText = '중복 객체 추적 필터링 적용 중...';
+                } else if (progress === 90) {
+                    aiLoadingStatus.innerText = '최종 검수 수량 산출 및 결함 점검 완료!';
+                } else if (progress >= 100) {
+                    clearInterval(interval);
+                    
+                    const parsed = parseSTTResult(randomSTT);
+                    
+                    document.getElementById('aiMaterialSelect').value = parsed.material;
+                    document.getElementById('aiDetectedCount').innerText = `${parsed.count}개`;
+                    document.getElementById('confirmedCountInput').value = parsed.count;
+                    
+                    const aiStatusBadge = document.getElementById('aiStatusBadge');
+                    if (parsed.material === '벽체 균열') {
+                        aiStatusBadge.style.background = 'rgba(255, 60, 60, 0.12)';
+                        aiStatusBadge.style.color = '#ff3c3c';
+                        aiStatusBadge.style.border = '1px solid #ff3c3c';
+                        aiStatusBadge.innerText = '정밀 안전 진단 필요 (Urgent)';
+                    } else {
+                        aiStatusBadge.style.background = 'rgba(16, 185, 129, 0.12)';
+                        aiStatusBadge.style.color = '#10b981';
+                        aiStatusBadge.style.border = '1px solid #10b981';
+                        aiStatusBadge.innerText = '정상 (No Defects)';
+                    }
+                    
+                    aiLoadingOverlay.classList.add('hidden');
+                    resultContent.classList.remove('hidden');
+                }
+            }, 150);
+            return;
+        }
+
+        if (mediaRecorder) {
+            mediaRecorder.stop();
+        }
         isRecording = false;
 
         clearInterval(timerInterval);
